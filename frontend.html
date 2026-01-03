@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Classification AI</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(to right, #4a6ee0, #6a11cb);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            margin: 10px 0 0;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .input-section {
+            margin-bottom: 30px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            transition: border 0.3s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #6a11cb;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .predict-btn {
+            background: linear-gradient(to right, #6a11cb, #4a6ee0);
+            color: white;
+            flex-grow: 1;
+        }
+        
+        .predict-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(106, 17, 203, 0.3);
+        }
+        
+        .example-btn {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .example-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .category-chip {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin: 5px;
+            font-weight: 500;
+        }
+        
+        .mac { background: #ffd6cc; color: #cc3d00; }
+        .baseball { background: #ccffcc; color: #006600; }
+        .space { background: #cce5ff; color: #004085; }
+        .politics { background: #fff0cc; color: #856404; }
+        
+        .result-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            min-height: 100px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6a11cb;
+        }
+        
+        .result {
+            display: none;
+        }
+        
+        .top-predictions {
+            margin-top: 20px;
+        }
+        
+        .prediction-bar {
+            background: #e9ecef;
+            border-radius: 5px;
+            height: 25px;
+            margin: 10px 0;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .prediction-fill {
+            height: 100%;
+            background: linear-gradient(to right, #6a11cb, #4a6ee0);
+            border-radius: 5px;
+            transition: width 1s ease-out;
+        }
+        
+        .prediction-label {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-weight: 600;
+            z-index: 1;
+        }
+        
+        .server-status {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .status-online {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .status-offline {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Text Classification AI</h1>
+            <p>Classify text into 4 categories using machine learning</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <label for="textInput"><h3>Enter text to classify:</h3></label>
+                <textarea id="textInput" placeholder="Type or paste your text here...">SpaceX successfully launched the Starship rocket on its fourth test flight from Texas.</textarea>
+                
+                <div class="buttons">
+                    <button class="predict-btn" onclick="predictText()">🔍 Classify Text</button>
+                    <button class="example-btn" onclick="loadExample('space')">🚀 Space Example</button>
+                    <button class="example-btn" onclick="loadExample('baseball')">⚾ Baseball Example</button>
+                    <button class="example-btn" onclick="loadExample('mac')">💻 Tech Example</button>
+                    <button class="example-btn" onclick="loadExample('politics')">🇺🇳 Politics Example</button>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <strong>Categories:</strong>
+                    <span class="category-chip mac">comp.sys.mac.hardware</span>
+                    <span class="category-chip baseball">rec.sport.baseball</span>
+                    <span class="category-chip space">sci.space</span>
+                    <span class="category-chip politics">talk.politics.mideast</span>
+                </div>
+            </div>
+            
+            <div class="result-section">
+                <div id="loading" class="loading" style="display: none;">
+                    <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                    Analyzing text with AI model...
+                </div>
+                
+                <div id="result" class="result">
+                    <!-- Results will appear here -->
+                </div>
+            </div>
+            
+            <div class="server-status" id="serverStatus">
+                <div>API Server Status: <span id="statusText">Checking...</span></div>
+                <div style="font-size: 12px; margin-top: 5px;">http://127.0.0.1:8000/predict</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_URL = 'http://127.0.0.1:8000/predict';
+        
+        // Example texts
+        const examples = {
+            space: "NASA's James Webb Space Telescope discovered water vapor on a distant exoplanet 120 light-years away, marking a significant step in the search for habitable worlds.",
+            baseball: "The New York Yankees defeated the Boston Red Sox 5-3 in an intense extra-innings game at Fenway Park, extending their winning streak to seven games.",
+            mac: "Apple unveiled the new MacBook Pro featuring the revolutionary M4 chip, 20% faster CPU performance, and improved battery life of up to 22 hours.",
+            politics: "The United Nations Security Council held emergency talks regarding the escalating conflict in the Middle East, calling for an immediate ceasefire."
+        };
+        
+        // Load example text
+        function loadExample(type) {
+            document.getElementById('textInput').value = examples[type];
+        }
+        
+        // Check server status
+        async function checkServerStatus() {
+            const statusText = document.getElementById('statusText');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/health', {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    statusText.innerHTML = '<span class="status-online">✅ Online</span>';
+                    statusText.parentElement.style.background = '#d4edda';
+                } else {
+                    statusText.innerHTML = '<span class="status-offline">❌ Offline</span>';
+                    statusText.parentElement.style.background = '#f8d7da';
+                }
+            } catch (error) {
+                statusText.innerHTML = '<span class="status-offline">❌ Server not running</span>';
+                statusText.parentElement.style.background = '#f8d7da';
+            }
+        }
+        
+        // Classify text
+        async function predictText() {
+            const text = document.getElementById('textInput').value.trim();
+            const resultDiv = document.getElementById('result');
+            const loadingDiv = document.getElementById('loading');
+            
+            if (!text) {
+                alert('Please enter some text to classify!');
+                return;
+            }
+            
+            // Show loading, hide previous results
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            resultDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                displayResults(data, text);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div style="color: #dc3545; text-align: center;">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                        <p>Make sure the API server is running:</p>
+                        <code style="background: #eee; padding: 5px; border-radius: 3px; display: block; margin: 10px;">
+                            uvicorn src.api:app --reload
+                        </code>
+                    </div>
+                `;
+                resultDiv.style.display = 'block';
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+        
+        // Display classification results
+        function displayResults(data, originalText) {
+            const resultDiv = document.getElementById('result');
+            
+            // Get category class for styling
+            const categoryClass = getCategoryClass(data.predicted_label);
+            
+            let html = `
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div class="category-chip ${categoryClass}" style="font-size: 1.2em; padding: 8px 25px;">
+                        ${data.predicted_label}
+                    </div>
+                    <h3 style="margin: 10px 0 5px;">Predicted Category</h3>
+                    <p style="color: #666; margin: 0;">Confidence: High</p>
+                </div>
+                
+                <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <strong>Analyzed Text:</strong>
+                    <p style="color: #555; font-style: italic; margin: 5px 0 0;">"${originalText.substring(0, 150)}${originalText.length > 150 ? '...' : ''}"</p>
+                </div>
+            `;
+            
+            // If we have probability scores (top3), show them
+            if (data.top3 && data.top3.length > 0) {
+                html += `
+                    <div class="top-predictions">
+                        <h4>Top Predictions:</h4>
+                `;
+                
+                data.top3.forEach(item => {
+                    const percent = (item.prob * 100).toFixed(1);
+                    const itemClass = getCategoryClass(item.label);
+                    
+                    html += `
+                        <div style="margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span class="category-chip ${itemClass}">${item.label}</span>
+                                <span style="font-weight: bold;">${percent}%</span>
+                            </div>
+                            <div class="prediction-bar">
+                                <div class="prediction-fill" style="width: ${percent}%;"></div>
+                                <div class="prediction-label">${percent}%</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            } else {
+                html += `
+                    <div style="text-align: center; color: #666; margin-top: 20px;">
+                        <p>ℹ️ Probability scores not available for this model.</p>
+                        <p><small>The LinearSVC model doesn't provide probability estimates.</small></p>
+                    </div>
+                `;
+            }
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+            
+            // Animate the prediction bars
+            setTimeout(() => {
+                const bars = document.querySelectorAll('.prediction-fill');
+                bars.forEach(bar => {
+                    bar.style.width = bar.style.width;
+                });
+            }, 100);
+        }
+        
+        // Helper function to get CSS class for category
+        function getCategoryClass(label) {
+            if (label.includes('mac')) return 'mac';
+            if (label.includes('baseball')) return 'baseball';
+            if (label.includes('space')) return 'space';
+            if (label.includes('politics')) return 'politics';
+            return '';
+        }
+        
+        // Initialize on page load
+        window.onload = function() {
+            checkServerStatus();
+            
+            // Auto-check status every 10 seconds
+            setInterval(checkServerStatus, 10000);
+            
+            // Auto-classify the example text after 1 second
+            setTimeout(() => {
+                predictText();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>
