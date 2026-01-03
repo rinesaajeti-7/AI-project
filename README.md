@@ -1,4 +1,4 @@
-# AI Internship Challenge – Text Classification Task
+# AI Project – Text Classification Task
 
 A small end‑to‑end text classification project that loads a public dataset, performs preprocessing and EDA, trains a few simple models, evaluates them, and exposes a prediction script and an optional API.
 
