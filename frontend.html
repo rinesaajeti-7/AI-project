@@ -194,7 +194,7 @@
         <div class="main-content">
             <div class="input-section">
                 <label for="textInput"><h3>Enter text to classify:</h3></label>
-                <textarea id="textInput" placeholder="Type or paste your text here...">SpaceX successfully launched the Starship rocket on its fourth test flight from Texas.</textarea>
+                <textarea id="textInput" placeholder="Type or paste your text here...">"Blue Origin launched its New Shepard rocket with civilian passengers, marking a milestone in commercial space tourism."</textarea>
                 
                 <div class="buttons">
                     <button class="predict-btn" onclick="predictText()">🔍 Classify Text</button>
@@ -240,7 +240,7 @@
             space: "NASA's James Webb Space Telescope discovered water vapor on a distant exoplanet 120 light-years away, marking a significant step in the search for habitable worlds.",
             baseball: "The New York Yankees defeated the Boston Red Sox 5-3 in an intense extra-innings game at Fenway Park, extending their winning streak to seven games.",
             mac: "Apple unveiled the new MacBook Pro featuring the revolutionary M4 chip, 20% faster CPU performance, and improved battery life of up to 22 hours.",
-            politics: "The United Nations Security Council held emergency talks regarding the escalating conflict in the Middle East, calling for an immediate ceasefire."
+            politics:"Israel and Palestine resumed peace talks in Jerusalem, aiming to reduce tensions and address humanitarian concerns in the region."
         };
         
         // Load example text
@@ -320,83 +320,85 @@
             }
         }
         
-        // Display classification results
-        function displayResults(data, originalText) {
-            const resultDiv = document.getElementById('result');
-            
-            // Get category class for styling
-            const categoryClass = getCategoryClass(data.predicted_label);
-            
-            let html = `
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <div class="category-chip ${categoryClass}" style="font-size: 1.2em; padding: 8px 25px;">
-                        ${data.predicted_label}
-                    </div>
-                    <h3 style="margin: 10px 0 5px;">Predicted Category</h3>
-                    <p style="color: #666; margin: 0;">Confidence: High</p>
+    function displayResults(data, originalText) {
+    const resultDiv = document.getElementById('result');
+    
+    let html = '';
+
+    if (data.predicted_label === "UNKNOWN") {
+        // Tekst jashtë kategorive
+        html = `
+            <div style="text-align: center; margin: 20px;">
+                <h3>❓ Unknown Category</h3>
+                <p>The text does not belong to any of the trained categories.</p>
+            </div>
+            <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <strong>Analyzed Text:</strong>
+                <p style="color: #555; font-style: italic; margin: 5px 0 0;">"${originalText.substring(0, 150)}${originalText.length > 150 ? '...' : ''}"</p>
+            </div>
+        `;
+    } else {
+        // Versioni ekzistues për kategoritë normale
+        const categoryClass = getCategoryClass(data.predicted_label);
+
+        html = `
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div class="category-chip ${categoryClass}" style="font-size: 1.2em; padding: 8px 25px;">
+                    ${data.predicted_label}
                 </div>
-                
-                <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                    <strong>Analyzed Text:</strong>
-                    <p style="color: #555; font-style: italic; margin: 5px 0 0;">"${originalText.substring(0, 150)}${originalText.length > 150 ? '...' : ''}"</p>
-                </div>
-            `;
-            
-            // If we have probability scores (top3), show them
-            if (data.top3 && data.top3.length > 0) {
+                <h3 style="margin: 10px 0 5px;">Predicted Category</h3>
+                <p style="color: #666; margin: 0;">Confidence: High</p>
+            </div>
+            <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <strong>Analyzed Text:</strong>
+                <p style="color: #555; font-style: italic; margin: 5px 0 0;">"${originalText.substring(0, 150)}${originalText.length > 150 ? '...' : ''}"</p>
+            </div>
+        `;
+
+        if (data.top3 && data.top3.length > 0) {
+            html += `<div class="top-predictions"><h4>Top Predictions:</h4>`;
+            data.top3.forEach(item => {
+                const percent = (item.prob * 100).toFixed(1);
+                const itemClass = getCategoryClass(item.label);
+
                 html += `
-                    <div class="top-predictions">
-                        <h4>Top Predictions:</h4>
-                `;
-                
-                data.top3.forEach(item => {
-                    const percent = (item.prob * 100).toFixed(1);
-                    const itemClass = getCategoryClass(item.label);
-                    
-                    html += `
-                        <div style="margin-bottom: 15px;">
-                            <div style="display: flex; justify-content: space-between;">
-                                <span class="category-chip ${itemClass}">${item.label}</span>
-                                <span style="font-weight: bold;">${percent}%</span>
-                            </div>
-                            <div class="prediction-bar">
-                                <div class="prediction-fill" style="width: ${percent}%;"></div>
-                                <div class="prediction-label">${percent}%</div>
-                            </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="category-chip ${itemClass}">${item.label}</span>
+                            <span style="font-weight: bold;">${percent}%</span>
                         </div>
-                    `;
-                });
-                
-                html += `</div>`;
-            } else {
-                html += `
-                    <div style="text-align: center; color: #666; margin-top: 20px;">
-                        <p>ℹ️ Probability scores not available for this model.</p>
-                        <p><small>The LinearSVC model doesn't provide probability estimates.</small></p>
+                        <div class="prediction-bar">
+                            <div class="prediction-fill" style="width: ${percent}%;"></div>
+                            <div class="prediction-label">${percent}%</div>
+                        </div>
                     </div>
                 `;
-            }
-            
-            resultDiv.innerHTML = html;
-            resultDiv.style.display = 'block';
-            
-            // Animate the prediction bars
-            setTimeout(() => {
-                const bars = document.querySelectorAll('.prediction-fill');
-                bars.forEach(bar => {
-                    bar.style.width = bar.style.width;
-                });
-            }, 100);
+            });
+            html += `</div>`;
         }
-        
-        // Helper function to get CSS class for category
-        function getCategoryClass(label) {
-            if (label.includes('mac')) return 'mac';
-            if (label.includes('baseball')) return 'baseball';
-            if (label.includes('space')) return 'space';
-            if (label.includes('politics')) return 'politics';
-            return '';
-        }
+    }
+
+    resultDiv.innerHTML = html;
+    resultDiv.style.display = 'block';
+
+    setTimeout(() => {
+        const bars = document.querySelectorAll('.prediction-fill');
+        bars.forEach(bar => {
+            bar.style.width = bar.style.width;
+        });
+    }, 100);
+}
+// Helper function to get CSS class for category
+ function getCategoryClass(label) {
+    if (label.includes('mac')) return 'mac';
+    if (label.includes('baseball')) return 'baseball';
+    if (label.includes('space')) return 'space';
+    if (label.includes('politics')) return 'politics';
+    if (label === "UNKNOWN") return 'unknown'; // mund ta stilosh
+    return '';
+}
+
+
         
         // Initialize on page load
         window.onload = function() {

@@ -50,6 +50,11 @@ def main():
 
     # Load data
     df, target_names = load_dataset(CATEGORIES)
+    print("=== Dataset Preview ===")
+    print(df.head(20))   # tregon 20 rreshta të parë
+    print(df['label_idx'].map(lambda x: target_names[x]).value_counts())
+     # tregon sa shembuj ka për secilën kategori
+    print("======================")
 
     # Split
     X_train, X_test, y_train, y_test = train_test_split(
@@ -123,6 +128,10 @@ Saved artifacts:
 - Classification report: {REPORT_PATH}
 - Confusion matrix image: {CONFUSION_MATRIX_PATH}
 """)
+
+
+
+
 
 if __name__ == "__main__":
     main()
