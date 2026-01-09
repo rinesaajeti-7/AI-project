@@ -1,35 +1,53 @@
-import argparse
 import json
+import sys
 import joblib
-import numpy as np
-
-def load_labels(path):
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)["labels"]
+from pathlib import Path
+from .config import BEST_MODEL_PATH, VECTORIZER_PATH, LABELS_PATH
 
 def main():
-    parser = argparse.ArgumentParser(description="Predict text category")
-    parser.add_argument("text", type=str, help="Input text to classify (wrap in quotes)")
-    parser.add_argument("--model", default="artifacts/best_model.joblib", help="Path to trained model")
-    parser.add_argument("--vectorizer", default="artifacts/tfidf_vectorizer.joblib", help="Path to TF-IDF vectorizer")
-    parser.add_argument("--labels", default="artifacts/labels.json", help="Path to label map JSON")
-    args = parser.parse_args()
+    # Get text input
+    if len(sys.argv) > 1:
+        text = " ".join(sys.argv[1:])
+    else:
+        text = input("Shkruaj tekstin për klasifikim: ").strip()
 
-    model = joblib.load(args.model)
-    vectorizer = joblib.load(args.vectorizer)
-    labels = load_labels(args.labels)
+    if not text:
+        print(json.dumps({
+            "error": "Nuk u dha tekst për klasifikim",
+            "message": "Përdor: python3 -m src.predict \"Teksti yt këtu\""
+        }, indent=2, ensure_ascii=False))
+        return
 
-    X = vectorizer.transform([args.text])
-    pred = model.predict(X)[0]
-    out = {"predicted_index": int(pred), "predicted_label": labels[pred]}
+    # Load artifacts
+    model = joblib.load(BEST_MODEL_PATH)
+    vectorizer = joblib.load(VECTORIZER_PATH)
+    with open(LABELS_PATH, "r", encoding="utf-8") as f:
+        labels = json.load(f)["labels"]
 
-    # If the model supports probabilities, show them
-    if hasattr(model, "predict_proba"):
-        probs = model.predict_proba(X)[0]
-        top_k = np.argsort(probs)[-3:][::-1]
-        out["top3"] = [{"label": labels[i], "prob": float(probs[i])} for i in top_k]
+    # Transform input text
+    X = vectorizer.transform([text])
+    pred_idx = int(model.predict(X)[0])
+    predicted_label = labels[pred_idx]
 
-    print(json.dumps(out, indent=2))
+    # Try to get decision function scores for top 3
+    top3 = None
+    if hasattr(model, "decision_function"):
+        scores = model.decision_function(X).ravel()
+        if scores.ndim == 0:  # binary classification case
+            scores = [scores, -scores]
+        top_idx = scores.argsort()[-3:][::-1]
+        top3 = [{"label": labels[i], "score": float(scores[i])} for i in top_idx]
+
+    output = {
+        "text": text,
+        "predicted_label": predicted_label,
+        "predicted_index": pred_idx,
+        "top3": top3,
+        "success": True
+    }
+
+    print(json.dumps(output, indent=2, ensure_ascii=False))
+
 
 if __name__ == "__main__":
     main()
