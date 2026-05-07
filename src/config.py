@@ -3,8 +3,6 @@
 RANDOM_SEED = 42
 TEST_SIZE = 0.20
 
-# We'll use a 4-class subset of the 20 Newsgroups dataset to fit the 2–5 category requirement.
-# These categories are distinct and produce meaningful classification boundaries.
 CATEGORIES = [
     "comp.sys.mac.hardware",
     "rec.sport.baseball",
