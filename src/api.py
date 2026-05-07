@@ -10,8 +10,6 @@ from pydantic import BaseModel
 from scipy.special import softmax
 from fastapi.staticfiles import StaticFiles
 
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
 # Import paths from config (make sure config.py exists and defines these)
 try:
     from .config import BEST_MODEL_PATH, VECTORIZER_PATH, LABELS_PATH
@@ -86,8 +84,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- Static files (frontend) with error handling ---
+static_dir = "static"
+if os.path.exists(static_dir) and os.path.isdir(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+    print(f"✅ Serving static files from '{static_dir}'")
+else:
+    print(f"⚠️ Warning: Static directory '{static_dir}' not found. Frontend not served.")
 
-# Pydantic models (unchanged)
+# Pydantic models
 class PredictIn(BaseModel):
     text: str
 
