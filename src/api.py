@@ -85,14 +85,6 @@ app.add_middleware(
 )
 
 
-# --- Static files (frontend) - MUST be at the end after all API routes ---
-static_dir = "static"
-if os.path.exists(static_dir) and os.path.isdir(static_dir):
-    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
-    print(f"✅ Serving static files from '{static_dir}'")
-else:
-    print(f"⚠️ Warning: Static directory '{static_dir}' not found. Frontend not served.")
-
 # Pydantic models
 class PredictIn(BaseModel):
     text: str
@@ -178,3 +170,12 @@ def predict(payload: PredictIn):
             out["predicted_label"] = "UNKNOWN"
 
     return out
+
+
+# --- Static files (frontend) - MUST be at the END after all API routes ---
+static_dir = "static"
+if os.path.exists(static_dir) and os.path.isdir(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+    print(f"✅ Serving static files from '{static_dir}'")
+else:
+    print(f"⚠️ Warning: Static directory '{static_dir}' not found. Frontend not served.")
