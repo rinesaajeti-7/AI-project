@@ -116,6 +116,7 @@
         .baseball { background: #ccffcc; color: #006600; }
         .space { background: #cce5ff; color: #004085; }
         .politics { background: #fff0cc; color: #856404; }
+        .unknown { background: #f0f0f0; color: #666; }
         
         .result-section {
             background: #f8f9fa;
@@ -194,7 +195,7 @@
         <div class="main-content">
             <div class="input-section">
                 <label for="textInput"><h3>Enter text to classify:</h3></label>
-                <textarea id="textInput" placeholder="Type or paste your text here...">"Blue Origin launched its New Shepard rocket with civilian passengers, marking a milestone in commercial space tourism."</textarea>
+                <textarea id="textInput" placeholder="Type or paste your text here...">Blue Origin launched its New Shepard rocket with civilian passengers, marking a milestone in commercial space tourism.</textarea>
                 
                 <div class="buttons">
                     <button class="predict-btn" onclick="predictText()">🔍 Classify Text</button>
@@ -226,14 +227,15 @@
             
             <div class="server-status" id="serverStatus">
                 <div>API Server Status: <span id="statusText">Checking...</span></div>
-                <div style="font-size: 12px; margin-top: 5px;">http://127.0.0.1:8000/predict</div>
+                <div style="font-size: 12px; margin-top: 5px;">https://ai-project-tesx.onrender.com/predict</div>
             </div>
         </div>
     </div>
 
     <script>
-        // API Configuration
-        const API_URL = 'http://127.0.0.1:8001/predict';
+        // API Configuration - POINT TO RENDER BACKEND
+        const API_URL = 'https://ai-project-tesx.onrender.com/predict';
+        const HEALTH_URL = 'https://ai-project-tesx.onrender.com/health';  // Use same origin health endpoint
         
         // Example texts
         const examples = {
@@ -248,26 +250,26 @@
             document.getElementById('textInput').value = examples[type];
         }
         
-        // Check server status
+        // Check server status using Render's /health endpoint
         async function checkServerStatus() {
             const statusText = document.getElementById('statusText');
             
             try {
-                const response = await fetch('http://127.0.0.1:8001/health', {
+                const response = await fetch(HEALTH_URL, {
                     method: 'GET',
                     headers: { 'Accept': 'application/json' }
                 });
                 
                 if (response.ok) {
                     statusText.innerHTML = '<span class="status-online">✅ Online</span>';
-                    statusText.parentElement.style.background = '#d4edda';
+                    document.querySelector('.server-status').style.background = '#d4edda';
                 } else {
                     statusText.innerHTML = '<span class="status-offline">❌ Offline</span>';
-                    statusText.parentElement.style.background = '#f8d7da';
+                    document.querySelector('.server-status').style.background = '#f8d7da';
                 }
             } catch (error) {
-                statusText.innerHTML = '<span class="status-offline">❌ Server not running</span>';
-                statusText.parentElement.style.background = '#f8d7da';
+                statusText.innerHTML = '<span class="status-offline">❌ Server not responding</span>';
+                document.querySelector('.server-status').style.background = '#f8d7da';
             }
         }
         
@@ -297,6 +299,9 @@
                 });
                 
                 if (!response.ok) {
+                    if (response.status === 503) {
+                        throw new Error('Model not loaded yet. Please wait a few seconds and try again.');
+                    }
                     throw new Error(`Server error: ${response.status}`);
                 }
                 
@@ -308,10 +313,7 @@
                     <div style="color: #dc3545; text-align: center;">
                         <h3>❌ Error</h3>
                         <p>${error.message}</p>
-                        <p>Make sure the API server is running:</p>
-                        <code style="background: #eee; padding: 5px; border-radius: 3px; display: block; margin: 10px;">
-                            uvicorn src.api:app --reload
-                        </code>
+                        <p>If the problem persists, the backend might be spinning up (free tier delay).</p>
                     </div>
                 `;
                 resultDiv.style.display = 'block';
@@ -320,94 +322,108 @@
             }
         }
         
-    function displayResults(data, originalText) {
-    const resultDiv = document.getElementById('result');
-    
-    let html = '';
+        function displayResults(data, originalText) {
+            const resultDiv = document.getElementById('result');
+            let html = '';
 
-    if (data.predicted_label === "UNKNOWN") {
-        // Tekst jashtë kategorive
-        html = `
-            <div style="text-align: center; margin: 20px;">
-                <h3>❓ Unknown Category</h3>
-                <p>The text does not belong to any of the trained categories.</p>
-            </div>
-            <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <strong>Analyzed Text:</strong>
-                <p style="color: #555; font-style: italic; margin: 5px 0 0;">"${originalText.substring(0, 150)}${originalText.length > 150 ? '...' : ''}"</p>
-            </div>
-        `;
-    } else {
-        // Versioni ekzistues për kategoritë normale
-        const categoryClass = getCategoryClass(data.predicted_label);
-
-        html = `
-            <div style="text-align: center; margin-bottom: 20px;">
-                <div class="category-chip ${categoryClass}" style="font-size: 1.2em; padding: 8px 25px;">
-                    ${data.predicted_label}
-                </div>
-                <h3 style="margin: 10px 0 5px;">Predicted Category</h3>
-                <p style="color: #666; margin: 0;">Confidence: High</p>
-            </div>
-            <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <strong>Analyzed Text:</strong>
-                <p style="color: #555; font-style: italic; margin: 5px 0 0;">"${originalText.substring(0, 150)}${originalText.length > 150 ? '...' : ''}"</p>
-            </div>
-        `;
-
-        if (data.top3 && data.top3.length > 0) {
-            html += `<div class="top-predictions"><h4>Top Predictions:</h4>`;
-            data.top3.forEach(item => {
-                const percent = (item.prob * 100).toFixed(1);
-                const itemClass = getCategoryClass(item.label);
-
-                html += `
-                    <div style="margin-bottom: 15px;">
-                        <div style="display: flex; justify-content: space-between;">
-                            <span class="category-chip ${itemClass}">${item.label}</span>
-                            <span style="font-weight: bold;">${percent}%</span>
-                        </div>
-                        <div class="prediction-bar">
-                            <div class="prediction-fill" style="width: ${percent}%;"></div>
-                            <div class="prediction-label">${percent}%</div>
-                        </div>
+            // Handle UNKNOWN case
+            if (data.predicted_label === "UNKNOWN") {
+                html = `
+                    <div style="text-align: center; margin: 20px;">
+                        <h3>❓ Unknown Category</h3>
+                        <p>The text does not belong to any of the trained categories.</p>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                        <strong>Analyzed Text:</strong>
+                        <p style="color: #555; font-style: italic; margin: 5px 0 0;">"${escapeHtml(originalText.substring(0, 150))}${originalText.length > 150 ? '...' : ''}"</p>
                     </div>
                 `;
-            });
-            html += `</div>`;
+            } else {
+                // Normal known category
+                const categoryClass = getCategoryClass(data.predicted_label);
+                html = `
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div class="category-chip ${categoryClass}" style="font-size: 1.2em; padding: 8px 25px;">
+                            ${escapeHtml(data.predicted_label)}
+                        </div>
+                        <h3 style="margin: 10px 0 5px;">Predicted Category</h3>
+                        <p style="color: #666; margin: 0;">Confidence: High</p>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                        <strong>Analyzed Text:</strong>
+                        <p style="color: #555; font-style: italic; margin: 5px 0 0;">"${escapeHtml(originalText.substring(0, 150))}${originalText.length > 150 ? '...' : ''}"</p>
+                    </div>
+                `;
+
+                // Add top3 if present and is an array
+                if (data.top3 && Array.isArray(data.top3) && data.top3.length > 0) {
+                    html += `<div class="top-predictions"><h4>Top Predictions:</h4>`;
+                    data.top3.forEach(item => {
+                        let prob = item.prob;
+                        if (typeof prob === 'undefined') {
+                            prob = 0;
+                        }
+                        const percent = (prob * 100).toFixed(1);
+                        const itemClass = getCategoryClass(item.label);
+                        html += `
+                            <div style="margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span class="category-chip ${itemClass}">${escapeHtml(item.label)}</span>
+                                    <span style="font-weight: bold;">${percent}%</span>
+                                </div>
+                                <div class="prediction-bar">
+                                    <div class="prediction-fill" style="width: ${percent}%;"></div>
+                                    <div class="prediction-label">${percent}%</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+            }
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+            
+            // Animate bars
+            setTimeout(() => {
+                const bars = document.querySelectorAll('.prediction-fill');
+                bars.forEach(bar => {
+                    bar.style.width = bar.style.width;
+                });
+            }, 100);
         }
-    }
-
-    resultDiv.innerHTML = html;
-    resultDiv.style.display = 'block';
-
-    setTimeout(() => {
-        const bars = document.querySelectorAll('.prediction-fill');
-        bars.forEach(bar => {
-            bar.style.width = bar.style.width;
-        });
-    }, 100);
-}
-// Helper function to get CSS class for category
- function getCategoryClass(label) {
-    if (label.includes('mac')) return 'mac';
-    if (label.includes('baseball')) return 'baseball';
-    if (label.includes('space')) return 'space';
-    if (label.includes('politics')) return 'politics';
-    if (label === "UNKNOWN") return 'unknown'; // mund ta stilosh
-    return '';
-}
-
-
+        
+        // Helper function to escape HTML to prevent XSS
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+                return c;
+            });
+        }
+        
+        // Helper function to get CSS class for category (works with full label strings)
+        function getCategoryClass(label) {
+            if (!label) return '';
+            if (label.includes('mac')) return 'mac';
+            if (label.includes('baseball')) return 'baseball';
+            if (label.includes('space')) return 'space';
+            if (label.includes('politics')) return 'politics';
+            if (label === "UNKNOWN") return 'unknown';
+            return '';
+        }
         
         // Initialize on page load
         window.onload = function() {
             checkServerStatus();
+            // Auto-check status every 15 seconds
+            setInterval(checkServerStatus, 15000);
             
-            // Auto-check status every 10 seconds
-            setInterval(checkServerStatus, 10000);
-            
-            // Auto-classify the example text after 1 second
+            // Auto-classify the example text after 1 second (if you want)
             setTimeout(() => {
                 predictText();
             }, 1000);
