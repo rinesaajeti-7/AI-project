@@ -84,7 +84,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Static files (frontend) with error handling ---
+
+# --- Static files (frontend) - MUST be at the end after all API routes ---
 static_dir = "static"
 if os.path.exists(static_dir) and os.path.isdir(static_dir):
     app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
