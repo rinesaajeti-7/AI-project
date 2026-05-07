@@ -18,7 +18,7 @@ SUBLINEAR_TF = True          # log scale term frequency
 
 # Paths
 ARTIFACT_DIR = "artifacts"
-VECTORIZER_PATH = f"{ARTIFACT_DIR}/tfidf_vectorizer.joblib"
+VECTORIZER_PATH = f"{ARTIFACT_DIR}/vectorizer.joblib"
 BEST_MODEL_PATH = f"{ARTIFACT_DIR}/best_model.joblib"
 LABELS_PATH = f"{ARTIFACT_DIR}/labels.json"
 METRICS_PATH = f"{ARTIFACT_DIR}/metrics.json"
